@@ -25,6 +25,9 @@ IMAGES_STORE = './downloads/'
 # 代理地址
 PROXY = 'http://localhost:19996'
 
+# qbittorrent web api
+WEB_API = 'http://localhost:7777'
+
 # 下载时创建的readme文件
 README_FILENAME = 'readme.txt'
 

@@ -3,7 +3,9 @@ import os
 import re
 from ehentai.items import EhentaiItem
 from urllib.parse import urlparse, parse_qs
+import datetime
 from ehentai.settings import README_FILENAME, IMAGES_STORE
+from ehentai.qbittorrent import add_torrents
 
 
 class ExampleSpider(scrapy.Spider):
@@ -28,18 +30,29 @@ class ExampleSpider(scrapy.Spider):
         id = parse_qs(urlparse(res.url).query)['gid'][0]
         fpath = os.path.join(IMAGES_STORE, id, README_FILENAME)
         table_list = res.xpath(
-            '//div[@id="torrentinfo"]/div[1]/descendant::table')
+            '//div[@id="torrentinfo"]/div[1]/descendant::table[./tr[3]/descendant::a]')
+
+        latest_torrent = ''
+        latest_date = ''
         for it in table_list:
             href = it.xpath(
-                './tr[3]/descendant::a/@href')
-            if not href: # 没有下载地址
-                continue
-            href = href.extract_first().strip()
+                './tr[3]/descendant::a/@href').extract_first().strip()
             date = it.xpath('./tr[1]/td[1]/text()').extract_first().strip()
             size = it.xpath('./tr[1]/td[2]/text()').extract_first().strip()
+            
+            # 获取最新的torrent地址
+            if not latest_torrent:
+                latest_torrent = href
+                latest_date = date
+            else:
+                if datetime.datetime.fromisoformat(date) > datetime.datetime.fromisoformat(latest_date):
+                    latest_torrent = href
+                    latest_date = date
+
             with open(fpath, 'a+', encoding='utf-8') as fp:
                 fp.write('''\r\n{date}\t{size}\r{href}'''.format(
                     date=date, size=size, href=href))
+        add_torrents(urls=[latest_torrent], path=id)
 
     # 原图页面
     def s_page(self, res):
@@ -63,6 +76,7 @@ class ExampleSpider(scrapy.Spider):
     def g_page(self, res):
         first_s_page_url = res.xpath('//div[@id="gdt"]/div[1]/div/a/@href')
 
+        has_torrent = False
         # get torrent list
         torrent_a = res.xpath(
             '//*[@id="gd5"]/descendant::a[contains(text(), "Torrent")]')
@@ -73,13 +87,17 @@ class ExampleSpider(scrapy.Spider):
                 onclick_str = torrent_a.xpath('./@onclick').extract_first()
                 torrent_page_url = re.match(
                     r".*popUp\('([^']+)'", onclick_str, re.I)[1]
+                has_torrent = True
                 yield scrapy.Request(url=torrent_page_url,
                                      callback=self.torrent_page)
 
-        if first_s_page_url:
-            yield scrapy.Request(url=first_s_page_url.extract_first(), callback=self.s_page)
-        else:
-            print('g_page not find first image: %s' % (res.url))
+        # 没有torrent才一张一张下载图片
+        # 图片下载多了，会被禁止下载
+        if not has_torrent:
+            if first_s_page_url:
+                yield scrapy.Request(url=first_s_page_url.extract_first(), callback=self.s_page)
+            else:
+                print('g_page not find first image: %s' % (res.url))
 
     def parse(self, res):
         # 过滤第一个tr和没有td[3]的tr
