@@ -20,16 +20,10 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 ROBOTSTXT_OBEY = False
 
 # 下载目录，别改
-IMAGES_STORE = './downloads/'
+DOWNLOAD_DIR = './downloads/'
 
 # 代理地址
 PROXY = 'http://localhost:19996'
-
-# qbittorrent web api
-WEB_API = 'http://localhost:7777'
-
-# 下载时创建的readme文件
-README_FILENAME = 'readme.txt'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32

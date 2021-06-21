@@ -1,27 +1,35 @@
-## run
+## 运行爬虫
 ```
+$ git clone git@github.com:januwA/py-ehentai.git
+$ cd py-ehentai
+$ conda install -c conda-forge scrapy
 $ scrapy crawl example
 ```
 
-## 代理
-修改'settings.py'中的'PROXY'
+如果运行错误，尝试[将conda添加到环境变量](https://www.zhihu.com/question/308832259)
 
-## 种子下载使用 [qBittorrent](https://www.qbittorrent.org/download.php)
+一些版本信息
+```
+λ python --version
+Python 3.8.5
 
-## qbittorrent [Web API](https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1))
+λ scrapy version
+Scrapy 2.4.1
 
-## [trackers](https://github.com/ngosang/trackerslist) 列表
+λ conda --version
+conda 4.10.1
+```
 
-## 开启Web UI
-![](./images/2021-02-05-00-54-48.png)
+## miniconda
+- [下载 miniconda (python环境)](https://docs.conda.io/en/latest/miniconda.html)
 
-## 开启自动下载
-![](./images/2021-02-05-00-55-28.png)
-
-## 关闭下载通知
-
-![](./images/2021-02-05-01-56-12.png)
+## 网络代理
+- 修改`ehentai/settings.py`中的`PROXY`
 
 ## unzip.py
 
-解压所有"./downloads/*/*.zip"，解压后源zip文件将被删除
+解压所有"./downloads/\*/*.{zip|rar|7z}"文件，解压后压缩文件将被删除
+
+```
+python unzip.py
+```
