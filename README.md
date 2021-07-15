@@ -28,7 +28,7 @@ conda 4.10.1
 
 ## unzip.py
 
-解压所有"./downloads/\*/*.{zip|rar|7z}"文件，解压后压缩文件将被删除
+解压所有"./downloads/\*.{zip|rar|7z}"文件，解压后压缩文件将被删除
 
 ```
 python unzip.py
