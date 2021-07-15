@@ -4,7 +4,6 @@ import re
 from ehentai.items import EhentaiItem
 from urllib.parse import urlparse, parse_qs
 import datetime
-from ehentai.settings import DOWNLOAD_DIR
 from ehentai.qbittorrent import add_torrents
 
 
@@ -22,6 +21,9 @@ class ExampleSpider(scrapy.Spider):
     category = {'Copslay': 959}
     f_srdd = 5
 
+    # 爬取的所有种子资源
+    torrent_urls = []
+
     def __init__(self):
         self.start_urls.append(self.get_url())
 
@@ -32,8 +34,6 @@ class ExampleSpider(scrapy.Spider):
 
     def torrent_page(self, res):
         ''' torrent 列表页面，获取torrent link并下载种子 '''
-        id = parse_qs(urlparse(res.url).query)['gid'][0]
-        fpath = os.path.join(DOWNLOAD_DIR, id, 'readme.md')
         table_list = res.xpath(
             '//div[@id="torrentinfo"]/div[1]/descendant::table[./tr[3]/descendant::a]')
 
@@ -54,9 +54,8 @@ class ExampleSpider(scrapy.Spider):
                     torrent_link = href
                     latest_date = date
 
-            with open(fpath, 'a+', encoding='utf-8') as fp:
-                fp.write(f'\r\n{date}\t{size}\r{href}')
-        add_torrents(torrent_link, id)
+        if len(torrent_link): 
+            self.torrent_urls.append(torrent_link)
 
     # 废弃，没有torrent将不再下载原图
     # def s_page(self, res):
@@ -121,27 +120,22 @@ class ExampleSpider(scrapy.Spider):
             '//table[contains(@class, "itg")]/tr[position()>1 and ./td[3]]')
 
         if not len(tr_list):  # 当前页面没有数据,不在继续
-            print(f'页面没有数据: ({self.page})')
+            print(f'页面没有数据: page({self.page}) {res.url}')
+            self.download()
             return
 
         for tr in tr_list:
-            name = tr.xpath('./td[3]/a/div[1]/text()').extract_first()
             g_page_url = tr.xpath('./td[3]/a//@href').extract_first()
-            id = re.compile(r'.*/g/(.+?)/', re.I).match(g_page_url)[1]
-            dpath = os.path.join(DOWNLOAD_DIR, id)
-            if os.path.exists(dpath):  # 避免重复下载
-                print(f"文件已存在跳过: { os.path.join(DOWNLOAD_DIR, id) }")
-                continue
-            else:  # 创建readme
-                self.createReadmeFile(dpath, name, g_page_url)
-                yield scrapy.Request(url=g_page_url, callback=self.g_page)
+            yield scrapy.Request(url=g_page_url, callback=self.g_page)
 
         # 爬取下一页
         self.page += 1
         if self.page < self.end_page:
             yield scrapy.Request(url=self.get_url(), callback=self.parse)
+        else:
+            self.download()
 
-    def createReadmeFile(self, dpath, name, url):
-        os.makedirs(dpath)
-        with open(os.path.join(dpath, 'readme.md'), 'w', encoding='utf-8') as fp:
-            fp.write(f"{name}\r\n{url}")
+    def download(self):
+        if len(self.torrent_urls):
+            add_torrents(self.torrent_urls)
+            self.torrent_urls.clear()
